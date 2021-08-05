@@ -6,15 +6,17 @@ def Jul_date(day, month, year, hour, min, sec):
     return 367 * year - int(7 * (year + int((month+9)/12)) / 4) + int(275 * month/9)\
            + day + 1721013.5 + ((sec/60 + min)/60 + hour)/24
 
-AU = 149597870.7  # астрономическая единица
+AU = 149597870.7  # astronomical unit [km]
+R_e = 6378.1363  # Earth radius [km]
 
 # Paris location
 #  longitude = 2.35
 #  latitude = 48.86
+#  time zone = UTC+3
 #  16/08/2021,12:00:00
 
-longitude = float(input("Local longitude of POI,degrees "))
-latitude = float(input("Local latitude of POI,degrees "))
+longitude = mth.radians(float(input("Local longitude of POI,degrees ")))
+latitude = mth.radians(float(input("Local latitude of POI,degrees ")))
 epoch = [float(item) for item in reg.split(r'[,/:]', input("Epoch in UTC format "))]
 
 #  epoch -> julian date
@@ -39,19 +41,30 @@ l_e = l_M + 1.914666471* mth.sin(mth.radians(M))\
 #  ecliptic altitude
 phi_e = 0.000333
 
-#  module of sun directed vector
+#  module of geocentric sun directed vector
 r = 1.000140612 - 0.016708617*mth.cos(mth.radians(M))\
     - 0.000139589*mth.cos(mth.radians(2*M))
 
-r_vec = [r * mth.cos(mth.radians(l_e)),
-         r * mth.cos(mth.radians(o_e)) * mth.sin(mth.radians(l_e)),
-         r * mth.sin(mth.radians(o_e)) * mth.sin(mth.radians(l_e))]
+# Geocentric position vector of the Sun, [km]
+r_vec = np.array([r * AU * mth.cos(mth.radians(l_e)),
+                  r * AU * mth.cos(mth.radians(o_e)) * mth.sin(mth.radians(l_e)),
+                  r * AU * mth.sin(mth.radians(o_e)) * mth.sin(mth.radians(l_e))])
+
+# Coordinates of POI in geocentric frame, [km]
+poi_vec = np.array([R_e * mth.cos(longitude),
+                    R_e * mth.sin(longitude),
+                    R_e * mth.tan(latitude)])
+
+# Sun directed vector from POI
+res_vec = r_vec - poi_vec
+
 print("Vector of sun direction is (in km)")
-print([round(i * AU,5) for i in r_vec])
+print([round(i,5) for i in res_vec])
 
 # Unit vector of sun direction
 print("Unit vector of sun direction is (in AU)")
-print([round(i,5) for i in r_vec/np.linalg.norm(r_vec)])
+print([round(i,5) for i in res_vec/np.linalg.norm(res_vec)])
+
 
 # Sun elevation angle
 C = 360  # 2pi radians in degrees
