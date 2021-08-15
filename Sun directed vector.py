@@ -11,12 +11,14 @@ R_e = 6378.1363  # Earth radius [km]
 
 # Paris location
 #  longitude = 2.35
-#  latitude = 48.86
+#  geodetic latitude = 48.86
 #  time zone = UTC+3
 #  16/08/2021,12:00:00
+#  average altitude in Paris = 0.03 km
 
 longitude = mth.radians(float(input("Local longitude of POI,degrees ")))
-latitude = mth.radians(float(input("Local latitude of POI,degrees ")))
+latitude = mth.radians(float(input("Local(geodetic) latitude of POI,degrees ")))
+altitude = float(input("Average altitude of POI,km "))
 epoch = [float(item) for item in reg.split(r'[,/:]', input("Epoch in UTC format "))]
 
 #  epoch -> julian date
@@ -50,10 +52,14 @@ r_vec = np.array([r * AU * mth.cos(mth.radians(l_e)),
                   r * AU * mth.cos(mth.radians(o_e)) * mth.sin(mth.radians(l_e)),
                   r * AU * mth.sin(mth.radians(o_e)) * mth.sin(mth.radians(l_e))])
 
+# eccentricity of th Earth
+e = 0.01670862 - 0.000042037*T - .0000001236*(T**2) + 0.00000000004*(T**3)
+# radius of curvature in the meridian, [km]
+C_0 = R_e/mth.sqrt(1 - (e**2) * (mth.sin(latitude))**2)
 # Coordinates of POI in geocentric frame, [km]
-poi_vec = np.array([R_e * mth.cos(longitude),
-                    R_e * mth.sin(longitude),
-                    R_e * mth.tan(latitude)])
+poi_vec = np.array([(C_0 + altitude) * mth.cos(latitude) * mth.cos(longitude),
+                    (C_0 + altitude) * mth.cos(latitude) * mth.sin(longitude),
+                    (C_0 * (1 - e**2) + altitude) * mth.sin(latitude)])
 
 # Sun directed vector from POI
 res_vec = r_vec - poi_vec
@@ -62,7 +68,7 @@ print("Vector of sun direction is (in km)")
 print([round(i,5) for i in res_vec])
 
 # Unit vector of sun direction
-print("Unit vector of sun direction is (in AU)")
+print("Unit vector of sun direction ")
 print([round(i,5) for i in res_vec/np.linalg.norm(res_vec)])
 
 
@@ -71,7 +77,7 @@ C = 360  # 2pi radians in degrees
 td = 24  # length of a day in hours
 tilt = 23.5  # tilt of Earth on its axes
 d_year = 365  # length of a year in days
-d_sol = 173  #Julian day of Summer Solstice
+d_sol = 173  # Julian day of Summer Solstice
 
 days = JD - Jul_date(1,1,epoch[2],epoch[3],epoch[4],epoch[5]) + 1  # Julian day of a current day from the beginning of the year
 time = epoch[3] + (epoch[4] + epoch[5]/60)/60  # time in UTC
